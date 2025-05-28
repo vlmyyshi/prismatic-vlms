@@ -64,7 +64,7 @@ class PretrainConfig:
         default_factory=DatasetConfig.get_choice_class(DatasetRegistry.LLAVA_V15.dataset_id)
     )
 
-    # Pretraining Stage in < align (projector-only) | finetune (projector + LLM) | full-finetune (all) >
+    # Pretraining Stage in < align (projector-only) | finetune (projector + LLM) | full-finetune (all) | pixmo-finetune >
     # ---
     stage: str = "finetune"                                         # Pretraining Stage in < align | finetune >
     pretrained_checkpoint: Optional[Path] = None                    # Pretrained Checkpoint to Load (for `finetune`)

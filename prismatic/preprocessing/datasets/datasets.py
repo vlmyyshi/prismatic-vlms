@@ -22,14 +22,14 @@ from PIL import Image
 
 from prismatic.models.backbones.llm.prompting import PromptBuilder
 from prismatic.models.backbones.vision import ImageTransform
+
+from prismatic.preprocessing.datasets.dataformatter import DataFormatter
 from torch.utils.data import Dataset
 from transformers import (
     CodeGenTokenizerFast,
     LlamaTokenizerFast,
     PreTrainedTokenizerBase,
 )
-
-from .dataformatter import DataFormatter
 
 # HuggingFace Default / LLaMa-2 IGNORE_INDEX (for labels)
 IGNORE_INDEX = -100
@@ -375,6 +375,7 @@ class FinetuneHFDataset(Dataset[Dict[str, torch.Tensor]]):
 
     def get_modality_lengths(self) -> List[Tuple[bool, int]]:
         """Get a list of modalities (unimodal / text-only vs. multimodal) and length of conversations per example."""
+        rng = np.random.RandomState(1234)
         modality_lengths = []
         for ex in self.examples:
             is_multimodal = "image" in ex
@@ -398,11 +399,9 @@ class FinetuneHFDataset(Dataset[Dict[str, torch.Tensor]]):
                 ),
             )
             formatted, meta_data = self.dataformatter(
-                ex=input_to_formatter, is_training=True, for_inference=False, rng=self.rng
+                ex=input_to_formatter, is_training=True, for_inference=False, rng=rng
             )
-            n_words = sum(
-                [len(turn["value"].split()) for turn in formatted]
-            )
+            n_words = sum([len(turn["value"].split()) for turn in formatted])
             modality_lengths.append((is_multimodal, n_words))
         return modality_lengths
 
