@@ -5,6 +5,7 @@ Factory class for initializing pretraining datasets on a per-VLM basis; provides
 clear control flow.
 """
 
+from pathlib import Path
 from typing import Tuple, Type
 
 from prismatic.conf import DatasetConfig
@@ -51,8 +52,8 @@ def get_dataset_and_collator(
     if stage == "align":
         annotation_json, image_dir = dataset_cfg.align_stage_components
         dataset = dataset_cls(
-            dataset_root_dir / annotation_json,
-            dataset_root_dir / image_dir,
+            Path(dataset_root_dir) / Path(annotation_json),
+            Path(dataset_root_dir) / Path(image_dir),
             image_transform,
             tokenizer,
         )
@@ -61,8 +62,8 @@ def get_dataset_and_collator(
     elif stage == "finetune":
         annotation_json, image_dir = dataset_cfg.finetune_stage_components
         dataset = dataset_cls(
-            dataset_root_dir / annotation_json,
-            dataset_root_dir / image_dir,
+            Path(dataset_root_dir) / Path(annotation_json),
+            Path(dataset_root_dir) / Path(image_dir),
             image_transform,
             tokenizer,
             prompt_builder_fn=prompt_builder_fn,
@@ -72,8 +73,8 @@ def get_dataset_and_collator(
     elif stage == "full-finetune":
         annotation_json, image_dir = dataset_cfg.finetune_stage_components
         dataset = dataset_cls(
-            dataset_root_dir / annotation_json,
-            dataset_root_dir / image_dir,
+            Path(dataset_root_dir) / Path(annotation_json),
+            Path(dataset_root_dir) / Path(image_dir),
             image_transform,
             tokenizer,
             prompt_builder_fn=prompt_builder_fn,
@@ -83,8 +84,8 @@ def get_dataset_and_collator(
     elif stage == "pixmo-finetune":
         pointing, counting = dataset_cfg.finetune_stage_components
         dataset = dataset_cls(
-            dataset_root_dir / pointing,
-            dataset_root_dir / counting,
+            Path(dataset_root_dir) / Path(pointing),
+            Path(dataset_root_dir) / Path(counting),
             image_transform,
             tokenizer,
             prompt_builder_fn=prompt_builder_fn,

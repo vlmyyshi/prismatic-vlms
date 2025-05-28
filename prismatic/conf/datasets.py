@@ -11,7 +11,7 @@ and processing scheme. A given dataset variant (e.g., `llava-lightning`) configu
 
 from dataclasses import dataclass
 from enum import Enum, unique
-from pathlib import Path
+
 from typing import Tuple
 
 from draccus import ChoiceRegistry
@@ -23,10 +23,10 @@ class DatasetConfig(ChoiceRegistry):
     dataset_id: str                                 # Unique ID that fully specifies a dataset variant
 
     # Dataset Components for each Stage in < align | finetune >
-    align_stage_components: Tuple[Path, Path]       # Path to annotation file and images directory for `align` stage
-    finetune_stage_components: Tuple[Path, Path]    # Path to annotation file and images directory for `finetune` stage
+    align_stage_components: Tuple[str, str]       # Path to annotation file and images directory for `align` stage
+    finetune_stage_components: Tuple[str, str]    # Path to annotation file and images directory for `finetune` stage
 
-    dataset_root_dir: Path                          # Path to dataset root directory; others paths are relative to root
+    dataset_root_dir: str                          # Path to dataset root directory; others paths are relative to root
     # fmt: on
 
 
@@ -35,15 +35,15 @@ class DatasetConfig(ChoiceRegistry):
 class LLaVa_V15_Config(DatasetConfig):
     dataset_id: str = "llava-v15"
 
-    align_stage_components: Tuple[Path, Path] = (
-        Path("download/llava-laion-cc-sbu-558k/chat.json"),
-        Path("download/llava-laion-cc-sbu-558k/"),
+    align_stage_components: Tuple[str, str] = (
+        str("download/llava-laion-cc-sbu-558k/chat.json"),
+        str("download/llava-laion-cc-sbu-558k/"),
     )
-    finetune_stage_components: Tuple[Path, Path] = (
-        Path("download/llava-v1.5-instruct/llava_v1_5_mix665k.json"),
-        Path("download/llava-v1.5-instruct/"),
+    finetune_stage_components: Tuple[str, str] = (
+        str("download/llava-v1.5-instruct/llava_v1_5_mix665k.json"),
+        str("download/llava-v1.5-instruct/"),
     )
-    dataset_root_dir: Path = Path("data")
+    dataset_root_dir: str = str("data")
 
 
 # [Multimodal-Only] LLava-v15 WITHOUT the Language-Only ShareGPT Data (No Co-Training)
@@ -51,15 +51,15 @@ class LLaVa_V15_Config(DatasetConfig):
 class LLaVa_Multimodal_Only_Config(DatasetConfig):
     dataset_id: str = "llava-multimodal"
 
-    align_stage_components: Tuple[Path, Path] = (
-        Path("download/llava-laion-cc-sbu-558k/chat.json"),
-        Path("download/llava-laion-cc-sbu-558k/"),
+    align_stage_components: Tuple[str, str] = (
+        str("download/llava-laion-cc-sbu-558k/chat.json"),
+        str("download/llava-laion-cc-sbu-558k/"),
     )
-    finetune_stage_components: Tuple[Path, Path] = (
-        Path("download/llava-v1.5-instruct/llava_v1_5_stripped625k.json"),
-        Path("download/llava-v1.5-instruct/"),
+    finetune_stage_components: Tuple[str, str] = (
+        str("download/llava-v1.5-instruct/llava_v1_5_stripped625k.json"),
+        str("download/llava-v1.5-instruct/"),
     )
-    dataset_root_dir: Path = Path("/mnt/fsx/skaramcheti/datasets/prismatic-vlms")
+    dataset_root_dir: str = str("/mnt/fsx/skaramcheti/datasets/prismatic-vlms")
 
 
 # LLaVa-v15 + LVIS-Instruct-4V
@@ -67,15 +67,15 @@ class LLaVa_Multimodal_Only_Config(DatasetConfig):
 class LLaVa_LVIS4V_Config(DatasetConfig):
     dataset_id: str = "llava-lvis4v"
 
-    align_stage_components: Tuple[Path, Path] = (
-        Path("download/llava-laion-cc-sbu-558k/chat.json"),
-        Path("download/llava-laion-cc-sbu-558k/"),
+    align_stage_components: Tuple[str, str] = (
+        str("download/llava-laion-cc-sbu-558k/chat.json"),
+        str("download/llava-laion-cc-sbu-558k/"),
     )
-    finetune_stage_components: Tuple[Path, Path] = (
-        Path("download/llava-v1.5-instruct/llava_v1_5_lvis4v_mix888k.json"),
-        Path("download/llava-v1.5-instruct/"),
+    finetune_stage_components: Tuple[str, str] = (
+        str("download/llava-v1.5-instruct/llava_v1_5_lvis4v_mix888k.json"),
+        str("download/llava-v1.5-instruct/"),
     )
-    dataset_root_dir: Path = Path("/mnt/fsx/skaramcheti/datasets/prismatic-vlms")
+    dataset_root_dir: str = str("/mnt/fsx/skaramcheti/datasets/prismatic-vlms")
 
 
 # LLaVa-v15 + LRV-Instruct
@@ -83,15 +83,15 @@ class LLaVa_LVIS4V_Config(DatasetConfig):
 class LLaVa_LRV_Config(DatasetConfig):
     dataset_id: str = "llava-lrv"
 
-    align_stage_components: Tuple[Path, Path] = (
-        Path("download/llava-laion-cc-sbu-558k/chat.json"),
-        Path("download/llava-laion-cc-sbu-558k/"),
+    align_stage_components: Tuple[str, str] = (
+        str("download/llava-laion-cc-sbu-558k/chat.json"),
+        str("download/llava-laion-cc-sbu-558k/"),
     )
-    finetune_stage_components: Tuple[Path, Path] = (
-        Path("download/llava-v1.5-instruct/llava_v1_5_lrv_mix1008k.json"),
-        Path("download/llava-v1.5-instruct/"),
+    finetune_stage_components: Tuple[str, str] = (
+        str("download/llava-v1.5-instruct/llava_v1_5_lrv_mix1008k.json"),
+        str("download/llava-v1.5-instruct/"),
     )
-    dataset_root_dir: Path = Path("/mnt/fsx/skaramcheti/datasets/prismatic-vlms")
+    dataset_root_dir: str = str("/mnt/fsx/skaramcheti/datasets/prismatic-vlms")
 
 
 # LLaVa-v15 + LVIS-Instruct-4V + LRV-Instruct
@@ -99,31 +99,31 @@ class LLaVa_LRV_Config(DatasetConfig):
 class LLaVa_LVIS4V_LRV_Config(DatasetConfig):
     dataset_id: str = "llava-lvis4v-lrv"
 
-    align_stage_components: Tuple[Path, Path] = (
-        Path("download/llava-laion-cc-sbu-558k/chat.json"),
-        Path("download/llava-laion-cc-sbu-558k/"),
+    align_stage_components: Tuple[str, str] = (
+        str("download/llava-laion-cc-sbu-558k/chat.json"),
+        str("download/llava-laion-cc-sbu-558k/"),
     )
-    finetune_stage_components: Tuple[Path, Path] = (
-        Path("download/llava-v1.5-instruct/llava_v1_5_lvis4v_lrv_mix1231k.json"),
-        Path("download/llava-v1.5-instruct/"),
+    finetune_stage_components: Tuple[str, str] = (
+        str("download/llava-v1.5-instruct/llava_v1_5_lvis4v_lrv_mix1231k.json"),
+        str("download/llava-v1.5-instruct/"),
     )
-    dataset_root_dir: Path = Path("/mnt/fsx/skaramcheti/datasets/prismatic-vlms")
+    dataset_root_dir: str = str("/mnt/fsx/skaramcheti/datasets/prismatic-vlms")
 
 
 @dataclass
-class PixMoPoints(DatasetConfig):
+class PixMoPoints_Config(DatasetConfig):
     dataset_id: str = "pixmo-points"
 
-    align_stage_components: Tuple[Path, Path] = (
-        Path("points-pointing"),
-        Path("points-counting"),
+    align_stage_components: Tuple[str, str] = (
+        str("points-pointing/"),
+        str("points-counting/"),
     )
-    finetune_stage_components: Tuple[Path, Path] = (
-        Path("points-pointing"),
-        Path("points-counting"),
+    finetune_stage_components: Tuple[str, str] = (
+        str("points-pointing/"),
+        str("points-counting/"),
     )
-    dataset_root_dir: Path = Path(
-        "/mnt/xr_core_ai_asl_llm/tree/vlm/data/PixMo/torch_datasets/pixmo_datasets"
+    dataset_root_dir: str = str(
+        "/mnt/xr_core_ai_asl_llm/tree/vlm/data/PixMo/torch_datasets"
     )
 
 
@@ -140,7 +140,7 @@ class DatasetRegistry(Enum):
 
     LLAVA_LVIS4V_LRV = LLaVa_LVIS4V_LRV_Config
 
-    PIXMO_POINTS = PixMoPoints
+    PIXMO_POINTS = PixMoPoints_Config
 
     @property
     def dataset_id(self) -> str:

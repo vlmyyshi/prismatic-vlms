@@ -266,7 +266,9 @@ class FinetuneHFDataset(Dataset[Dict[str, torch.Tensor]]):
         self.rng = np.random.RandomState(1234)
 
         pointing_ds = datasets.load_from_disk(pointing, keep_in_memory=False)["train"]
+        print(pointing_ds)
         counting_ds = datasets.load_from_disk(counting, keep_in_memory=False)["train"]
+        print(pointing_ds)
         self.examples = datasets.concatenate_datasets([pointing_ds, counting_ds])
 
     # === Unimodal + Multimodal Handling ===
@@ -401,6 +403,7 @@ class FinetuneHFDataset(Dataset[Dict[str, torch.Tensor]]):
             formatted, meta_data = self.dataformatter(
                 ex=input_to_formatter, is_training=True, for_inference=False, rng=rng
             )
+            print(formatted)
             n_words = sum([len(turn["value"].split()) for turn in formatted])
             modality_lengths.append((is_multimodal, n_words))
         return modality_lengths
