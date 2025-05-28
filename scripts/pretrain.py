@@ -33,10 +33,14 @@ import torch.distributed as dist
 import yaml
 
 from prismatic.conf import DatasetConfig, DatasetRegistry, ModelConfig, ModelRegistry
-from prismatic.models import get_llm_backbone_and_tokenizer, get_vision_backbone_and_transform, get_vlm
+from prismatic.models import (
+    get_llm_backbone_and_tokenizer,
+    get_vision_backbone_and_transform,
+    get_vlm,
+)
 from prismatic.overwatch import initialize_overwatch
 from prismatic.preprocessing import get_dataset_and_collator
-from prismatic.training import Metrics, get_train_strategy
+from prismatic.training import get_train_strategy, Metrics
 from prismatic.util import set_global_seed
 
 # Disable Tokenizers Parallelism to Play Nice w/ PyTorch Multiprocessing DataLoaders
@@ -75,11 +79,7 @@ class PretrainConfig:
     hf_token: Union[str, Path] = Path(".hf_token")                  # Environment variable or Path to HF Token
 
     # Tracking Parameters
-    trackers: Tuple[str, ...] = ("jsonl", "wandb")                  # Trackers to initialize (if W&B, add config!)
-    # wandb_project: str = "prismatic"                                # Name of W&B project (default: `prismatic`)
-    # wandb_entity: Optional[str] = None                              # Name of W&B entity (default: None)
-    wandb_project: str = "onyx-vlms"
-    wandb_entity: str = "stanford-voltron"
+    trackers: Tuple[str, ...] = ("jsonl", "tb")                  # Trackers to initialize (if W&B, add config!)
 
     def __post_init__(self) -> None:
         """Set optimization parameters based on `stage` in {"align", "finetune"}."""
@@ -128,37 +128,63 @@ def pretrain(cfg: PretrainConfig) -> None:
     # Create Unique Run Name & Save Directory
     model_id = cfg.model.model_id
     if (dataset_id := cfg.dataset.dataset_id) == "llava-v15":
-        cfg.run_id = f"{model_id}+stage-{cfg.stage}+x{cfg.seed}" if cfg.run_id is None else cfg.run_id
+        cfg.run_id = (
+            f"{model_id}+stage-{cfg.stage}+x{cfg.seed}"
+            if cfg.run_id is None
+            else cfg.run_id
+        )
     else:
-        cfg.run_id = f"{dataset_id}+{model_id}+stage-{cfg.stage}+x{cfg.seed}" if cfg.run_id is None else cfg.run_id
+        cfg.run_id = (
+            f"{dataset_id}+{model_id}+stage-{cfg.stage}+x{cfg.seed}"
+            if cfg.run_id is None
+            else cfg.run_id
+        )
 
     # Start =>> Build Directories and Set Randomness
-    overwatch.info('"Life is like a prism; what you see depends on how you turn the glass."', ctx_level=1)
-    hf_token = cfg.hf_token.read_text().strip() if isinstance(cfg.hf_token, Path) else os.environ[cfg.hf_token]
+    overwatch.info(
+        '"Life is like a prism; what you see depends on how you turn the glass."',
+        ctx_level=1,
+    )
+    hf_token = (
+        cfg.hf_token.read_text().strip()
+        if isinstance(cfg.hf_token, Path)
+        else os.environ[cfg.hf_token]
+    )
     worker_init_fn = set_global_seed(cfg.seed, get_worker_init_fn=True)
     os.makedirs(run_dir := (cfg.run_root_dir / cfg.run_id), exist_ok=True)
     os.makedirs(cfg.run_root_dir / cfg.run_id / "checkpoints", exist_ok=True)
     if overwatch.is_rank_zero():
         # Additionally save a JSON version of the config
         draccus.dump(cfg, open(run_dir / "config.yaml", "w"))
-        with open(run_dir / "config.yaml", "r") as f_yaml, open(run_dir / "config.json", "w") as f_json:
+        with open(run_dir / "config.yaml", "r") as f_yaml, open(
+            run_dir / "config.json", "w"
+        ) as f_json:
             yaml_cfg = yaml.safe_load(f_yaml)
             json.dump(yaml_cfg, f_json, indent=2)
 
     # Load Vision Backbone --> on CPU, in Full Precision (initializing model, image_transform via TIMM)
-    overwatch.info(f"Loading Vision Backbone [bold]{cfg.model.vision_backbone_id}[/] via TIMM ")
+    overwatch.info(
+        f"Loading Vision Backbone [bold]{cfg.model.vision_backbone_id}[/] via TIMM "
+    )
     vision_backbone, image_transform = get_vision_backbone_and_transform(
-        cfg.model.vision_backbone_id, image_resize_strategy=cfg.model.image_resize_strategy
+        cfg.model.vision_backbone_id,
+        image_resize_strategy=cfg.model.image_resize_strategy,
     )
 
     # Load LLM Backbone --> on CPU, in Full Precision (initializing Tokenizer + handling special tokens if necessary)
-    overwatch.info(f"Loading Pretrained LLM [bold]{cfg.model.llm_backbone_id}[/] via HF Transformers")
+    overwatch.info(
+        f"Loading Pretrained LLM [bold]{cfg.model.llm_backbone_id}[/] via HF Transformers"
+    )
     llm_backbone, tokenizer = get_llm_backbone_and_tokenizer(
-        cfg.model.llm_backbone_id, llm_max_length=cfg.model.llm_max_length, hf_token=hf_token
+        cfg.model.llm_backbone_id,
+        llm_max_length=cfg.model.llm_max_length,
+        hf_token=hf_token,
     )
 
     # Create VLM => wraps `vision_backbone` and `llm`
-    overwatch.info(f"Instantiating PrismaticVLM `{model_id}` for Training Stage = `{cfg.stage}`")
+    overwatch.info(
+        f"Instantiating PrismaticVLM `{model_id}` for Training Stage = `{cfg.stage}`"
+    )
     vlm = get_vlm(
         model_id,
         cfg.model.arch_specifier,
@@ -168,15 +194,23 @@ def pretrain(cfg: PretrainConfig) -> None:
     )
 
     # [Explicit] Call to `freeze_backbones` here for clarity => will log exactly what is frozen / what's not!
-    overwatch.info(f"Invoking `VLM.freeze_backbones()` for `{model_id}` => Training Stage: `{cfg.stage}`")
+    overwatch.info(
+        f"Invoking `VLM.freeze_backbones()` for `{model_id}` => Training Stage: `{cfg.stage}`"
+    )
     vlm.freeze_backbones(cfg.stage)
 
     # Load Weights from Checkpoint (depends on stage, config)
-    overwatch.info(f"Invoking `VLM.load_checkpoint()` for `{model_id}` => Training Stage: `{cfg.stage}`")
-    vlm.load_from_checkpoint(cfg.stage, run_dir, pretrained_checkpoint=cfg.pretrained_checkpoint)
+    overwatch.info(
+        f"Invoking `VLM.load_checkpoint()` for `{model_id}` => Training Stage: `{cfg.stage}`"
+    )
+    vlm.load_from_checkpoint(
+        cfg.stage, run_dir, pretrained_checkpoint=cfg.pretrained_checkpoint
+    )
 
     # Get Dataset for Specified Stage
-    overwatch.info(f"Creating Dataset `{cfg.dataset.dataset_id}` => Stage: `{cfg.stage}`")
+    overwatch.info(
+        f"Creating Dataset `{cfg.dataset.dataset_id}` => Stage: `{cfg.stage}`"
+    )
     train_dataset, collator = get_dataset_and_collator(
         cfg.stage,
         cfg.dataset,
@@ -217,14 +251,14 @@ def pretrain(cfg: PretrainConfig) -> None:
         run_dir,
         draccus.encode(cfg),
         cfg.stage,
-        wandb_project=cfg.wandb_project,
-        wandb_entity=cfg.wandb_entity,
         grad_accumulation_steps=train_strategy.grad_accumulation_steps,
     )
 
     # Run Training
     overwatch.info("Starting Training Loop")
-    train_strategy.run_training(train_dataset, collator, metrics, stage=cfg.stage, seed=cfg.seed)
+    train_strategy.run_training(
+        train_dataset, collator, metrics, stage=cfg.stage, seed=cfg.seed
+    )
 
     # Finalize
     overwatch.info("Done with Training =>> Finalizing Metrics")

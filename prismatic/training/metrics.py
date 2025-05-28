@@ -13,19 +13,33 @@ from typing import Any, Dict, Optional, Protocol, Tuple, Union
 import jsonlines
 import numpy as np
 import torch
-import wandb
 
 from prismatic.overwatch import initialize_overwatch
+from torch.utils.tensorboard.writer import SummaryWriter
 
 # Initialize Overwatch =>> Wraps `logging.Logger`
 overwatch = initialize_overwatch(__name__)
+
+
+def convert_hparams(hparams):
+    allowed_types = (int, float, str, bool, torch.Tensor)
+    fixed_hparams = {}
+    for k, v in hparams.items():
+        if not isinstance(v, allowed_types):
+            # Convert unsupported types to a string representation
+            fixed_hparams[k] = str(v)
+        else:
+            fixed_hparams[k] = v
+    return fixed_hparams
 
 
 # === Define Tracker Interface ===
 class Tracker(Protocol):
     def write_hyperparameters(self) -> None: ...
 
-    def write(self, global_step: int, metrics: Dict[str, Union[int, float]]) -> None: ...
+    def write(
+        self, global_step: int, metrics: Dict[str, Union[int, float]]
+    ) -> None: ...
 
     def finalize(self) -> None: ...
 
@@ -37,12 +51,16 @@ class JSONLinesTracker:
 
     @overwatch.rank_zero_only
     def write_hyperparameters(self) -> None:
-        with jsonlines.open(self.run_dir / "run-metrics.jsonl", mode="w", sort_keys=True) as js_tracker:
+        with jsonlines.open(
+            self.run_dir / "run-metrics.jsonl", mode="w", sort_keys=True
+        ) as js_tracker:
             js_tracker.write({"run_id": self.run_id, "hparams": self.hparams})
 
     @overwatch.rank_zero_only
     def write(self, _: int, metrics: Dict[str, Union[int, float]]) -> None:
-        with jsonlines.open(self.run_dir / f"{self.run_id}.jsonl", mode="a", sort_keys=True) as js_tracker:
+        with jsonlines.open(
+            self.run_dir / f"{self.run_id}.jsonl", mode="a", sort_keys=True
+        ) as js_tracker:
             js_tracker.write(metrics)
 
     def finalize(self) -> None:
@@ -55,41 +73,30 @@ class WeightsBiasesTracker:
         run_id: str,
         run_dir: Path,
         hparams: Dict[str, Any],
-        project: str = "prismatic",
-        entity: Optional[str] = None,
         group: str = "align",
     ) -> None:
         self.run_id, self.run_dir, self.hparams = run_id, run_dir, hparams
+        self.hparams = convert_hparams(self.hparams)
 
-        # Get W&B-Specific Initialization Parameters
-        self.project, self.entity, self.group, self.wandb_dir = project, entity, group, self.run_dir
+        self.group, self.tb_dir = group, self.run_dir
 
-        # Call W&B.init()
         self.initialize()
 
     @overwatch.rank_zero_only
     def initialize(self) -> None:
-        wandb.init(
-            name=self.run_id,
-            dir=self.wandb_dir,
-            config=self.hparams,
-            project=self.project,
-            entity=self.entity,
-            group=self.group,
-        )
+        self.tb_writer = SummaryWriter(log_dir=self.tb_dir)
 
     @overwatch.rank_zero_only
     def write_hyperparameters(self) -> None:
-        wandb.config = self.hparams
+        self.tb_writer.add_hparams(self.hparams, metric_dict={})
 
     @overwatch.rank_zero_only
     def write(self, global_step: int, metrics: Dict[str, Union[int, float]]) -> None:
-        wandb.log(metrics, step=global_step)
+        self.tb_writer.add_scalars(self.group, metrics, global_step)
 
-    @staticmethod
-    def finalize() -> None:
-        if overwatch.is_rank_zero():
-            wandb.finish()
+    @overwatch.rank_zero_only
+    def finalize(self) -> None:
+        self.tb_writer.close()
 
         # A job gets 210 seconds to get its affairs in order
         time.sleep(210)
@@ -106,21 +113,27 @@ class Metrics:
         run_dir: Path,
         hparams: Dict[str, Any],
         stage: str,
-        wandb_project: str = "prismatic",
-        wandb_entity: Optional[str] = None,
         grad_accumulation_steps: int = 1,
         window_size: int = 128,
     ) -> None:
-        self.run_id, self.run_dir, self.hparams, self.stage = run_id, run_dir, hparams, stage
+        self.run_id, self.run_dir, self.hparams, self.stage = (
+            run_id,
+            run_dir,
+            hparams,
+            stage,
+        )
 
         # Initialize Trackers
         self.trackers = []
         for tracker_type in active_trackers:
             if tracker_type == "jsonl":
                 tracker = JSONLinesTracker(run_id, run_dir, hparams)
-            elif tracker_type == "wandb":
+            elif tracker_type == "tb":
                 tracker = WeightsBiasesTracker(
-                    run_id, run_dir, hparams, project=wandb_project, entity=wandb_entity, group=self.stage
+                    run_id,
+                    run_dir,
+                    hparams,
+                    group=self.stage,
                 )
             else:
                 raise ValueError(f"Tracker with type `{tracker_type} is not supported!")
@@ -130,7 +143,11 @@ class Metrics:
             self.trackers.append(tracker)
 
         # Create Universal Metrics Buffers
-        self.global_step, self.start_time, self.step_start_time = 0, time.time(), time.time()
+        self.global_step, self.start_time, self.step_start_time = (
+            0,
+            time.time(),
+            time.time(),
+        )
         self.state = {
             "loss_raw": deque(maxlen=grad_accumulation_steps),
             "loss": deque(maxlen=window_size),
@@ -151,7 +168,12 @@ class Metrics:
         return f"=>> [Global Step] {self.global_step:06d} =>> LR :: {lr:.6f} -- Loss :: {loss:.4f}"
 
     def commit(
-        self, *, global_step: Optional[int] = None, lr: Optional[float] = None, update_step_time: bool = False, **kwargs
+        self,
+        *,
+        global_step: Optional[int] = None,
+        lr: Optional[float] = None,
+        update_step_time: bool = False,
+        **kwargs,
     ) -> None:
         """Update all metrics in `self.state` by iterating through special positional arguments & kwargs."""
         if global_step is not None:

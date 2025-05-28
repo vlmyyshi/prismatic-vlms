@@ -110,6 +110,23 @@ class LLaVa_LVIS4V_LRV_Config(DatasetConfig):
     dataset_root_dir: Path = Path("/mnt/fsx/skaramcheti/datasets/prismatic-vlms")
 
 
+@dataclass
+class PixMoPoints(DatasetConfig):
+    dataset_id: str = "pixmo-points"
+
+    align_stage_components: Tuple[Path, Path] = (
+        Path("points-pointing"),
+        Path("points-counting"),
+    )
+    finetune_stage_components: Tuple[Path, Path] = (
+        Path("points-pointing"),
+        Path("points-counting"),
+    )
+    dataset_root_dir: Path = Path(
+        "/mnt/xr_core_ai_asl_llm/tree/vlm/data/PixMo/torch_datasets/pixmo_datasets"
+    )
+
+
 # === Define a Dataset Registry Enum for Reference & Validation =>> all *new* datasets must be added here! ===
 @unique
 class DatasetRegistry(Enum):
@@ -122,6 +139,8 @@ class DatasetRegistry(Enum):
     LLAVA_LRV = LLaVa_LRV_Config
 
     LLAVA_LVIS4V_LRV = LLaVa_LVIS4V_LRV_Config
+
+    PIXMO_POINTS = PixMoPoints
 
     @property
     def dataset_id(self) -> str:
