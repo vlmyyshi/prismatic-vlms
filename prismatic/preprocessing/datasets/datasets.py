@@ -388,7 +388,15 @@ class FinetuneHFDataset(Dataset[Dict[str, torch.Tensor]]):
             labels[0] = IGNORE_INDEX
 
             # Process Image --> get "pixel_values" (will either be a torch.Tensor OR a Dict[str,torch.Tensor])
-            pixel_values = self.image_transform(Image.open(image_path).convert("RGB"))
+            try:
+                pixel_values = self.image_transform(
+                    Image.open(image_path).convert("RGB")
+                )
+            except Exception:
+                print("Failed to load image", image_path)
+                mode, size = "RGB", (386, 386)
+                fill = (255, 255, 255)
+                pixel_values = self.image_transform(Image.new(mode, size, color=fill))
 
             return dict(pixel_values=pixel_values, input_ids=input_ids, labels=labels)
 
