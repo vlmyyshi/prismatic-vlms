@@ -42,6 +42,7 @@ class AlignDataset(Dataset[Dict[str, torch.Tensor]]):
         image_dir: Path,
         image_transform: ImageTransform,
         tokenizer: PreTrainedTokenizerBase,
+        data_ratio: float = 1.0,
     ) -> None:
         super().__init__()
         self.chat_json, self.image_dir = chat_json, image_dir
@@ -137,6 +138,7 @@ class FinetuneDataset(Dataset[Dict[str, torch.Tensor]]):
         image_transform: ImageTransform,
         tokenizer: PreTrainedTokenizerBase,
         prompt_builder_fn: Type[PromptBuilder],
+        data_ratio: float = 1.0,
     ) -> None:
         super().__init__()
         self.instruct_json, self.image_dir = instruct_json, image_dir
@@ -253,6 +255,7 @@ class FinetuneHFDataset(Dataset[Dict[str, torch.Tensor]]):
         image_transform: ImageTransform,
         tokenizer: PreTrainedTokenizerBase,
         prompt_builder_fn: Type[PromptBuilder],
+        data_ratio: float = 1.0,
     ) -> None:
         super().__init__()
         self.image_transform, self.tokenizer = image_transform, tokenizer
@@ -274,6 +277,9 @@ class FinetuneHFDataset(Dataset[Dict[str, torch.Tensor]]):
             "train"
         ]
         self.counting_ds_size = len(self.counting_ds)
+        self.total_size = int(
+            float(self.pointing_ds_size + self.counting_ds_size) * data_ratio
+        )
         # self.examples = datasets.concatenate_datasets([pointing_ds, counting_ds])
 
     # === Unimodal + Multimodal Handling ===
@@ -394,7 +400,7 @@ class FinetuneHFDataset(Dataset[Dict[str, torch.Tensor]]):
         """Get a list of modalities (unimodal / text-only vs. multimodal) and length of conversations per example."""
         rng = np.random.RandomState(1234)
         modality_lengths = []
-        for idx in range(0, self.pointing_ds_size + self.counting_ds_size):
+        for idx in range(0, self.total_size):
             if idx >= self.pointing_ds_size:
                 idx -= self.pointing_ds_size
                 examples = self.counting_ds
@@ -429,4 +435,4 @@ class FinetuneHFDataset(Dataset[Dict[str, torch.Tensor]]):
         return modality_lengths
 
     def __len__(self) -> int:
-        return self.pointing_ds_size + self.counting_ds_size
+        return self.total_size

@@ -89,6 +89,8 @@ class PretrainConfig:
     run_id: Optional[str] = None                                    # Run ID for logging, Weights & Biases
     run_root_dir: Path = Path("runs")                               # Path to directory to store logs & checkpoints
     seed: int = 7                                                   # Random seed (for reproducibility)
+    save_interval: int = 2500                                       # Interval for saving checkpoints (in steps)
+    data_ratio: float = 1.0                                         # Ratio of dataset to use
 
 
     # Tracking Parameters
@@ -226,6 +228,7 @@ def pretrain(cfg: PretrainConfig) -> None:
         prompt_builder_fn=llm_backbone.prompt_builder_fn,
         default_image_resolution=vision_backbone.default_image_resolution,
         padding_side=tokenizer.padding_side,
+        data_ratio=cfg.data_ratio,
     )
 
     # Create Train Strategy
@@ -264,7 +267,12 @@ def pretrain(cfg: PretrainConfig) -> None:
     # Run Training
     overwatch.info("Starting Training Loop")
     train_strategy.run_training(
-        train_dataset, collator, metrics, stage=cfg.stage, seed=cfg.seed
+        train_dataset,
+        collator,
+        metrics,
+        stage=cfg.stage,
+        seed=cfg.seed,
+        save_interval=cfg.save_interval,
     )
 
     # Finalize

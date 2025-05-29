@@ -38,6 +38,7 @@ def get_dataset_and_collator(
     prompt_builder_fn: Type[PromptBuilder],
     default_image_resolution: Tuple[int, int, int],
     padding_side: str = "right",
+    data_ratio: float = 1.0,
 ) -> Tuple[Dataset, PaddedCollatorForLanguageModeling]:
     dataset_cls = DATASET_INITIALIZER[stage]
     dataset_root_dir = dataset_cfg.dataset_root_dir
@@ -56,6 +57,7 @@ def get_dataset_and_collator(
             Path(dataset_root_dir) / Path(image_dir),
             image_transform,
             tokenizer,
+            data_ratio,
         )
         return dataset, collator
 
@@ -67,6 +69,7 @@ def get_dataset_and_collator(
             image_transform,
             tokenizer,
             prompt_builder_fn=prompt_builder_fn,
+            data_ratio=data_ratio,
         )
         return dataset, collator
 
@@ -78,6 +81,7 @@ def get_dataset_and_collator(
             image_transform,
             tokenizer,
             prompt_builder_fn=prompt_builder_fn,
+            data_ratio=data_ratio,
         )
         return dataset, collator
 
@@ -89,6 +93,7 @@ def get_dataset_and_collator(
             image_transform,
             tokenizer,
             prompt_builder_fn=prompt_builder_fn,
+            data_ratio=data_ratio,
         )
         return dataset, collator
 

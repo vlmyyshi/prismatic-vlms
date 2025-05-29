@@ -14,9 +14,6 @@ from typing import Callable, Optional
 
 import torch
 import torch.distributed as dist
-from torch.utils.data import DataLoader, Dataset, DistributedSampler
-from tqdm import tqdm
-from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from prismatic.models.vlms import PrismaticVLM
 from prismatic.overwatch import initialize_overwatch
@@ -24,6 +21,9 @@ from prismatic.training.metrics import Metrics
 from prismatic.util import check_bloat16_supported
 from prismatic.util.batching_utils import SplitModalitySampler
 from prismatic.util.data_utils import PaddedCollatorForLanguageModeling
+from torch.utils.data import DataLoader, Dataset, DistributedSampler
+from tqdm import tqdm
+from transformers.modeling_outputs import CausalLMOutputWithPast
 
 # Initialize Overwatch =>> Wraps `logging.Logger`
 overwatch = initialize_overwatch(__name__)
@@ -54,14 +54,24 @@ class TrainingStrategy(ABC):
         self.vlm, self.device_id = vlm, device_id
 
         # Get relevant VLM instance parameters before they get (potentially) wrapped
-        self.all_module_keys, self.trainable_module_keys = self.vlm.all_module_keys, self.vlm.trainable_module_keys
+        self.all_module_keys, self.trainable_module_keys = (
+            self.vlm.all_module_keys,
+            self.vlm.trainable_module_keys,
+        )
         self.llm_transformer_layer_cls = self.vlm.llm_backbone.transformer_layer_cls
 
         # Optimization Parameters
         self.epochs, self.max_steps = epochs, max_steps
-        self.global_batch_size, self.per_device_batch_size = global_batch_size, per_device_batch_size
+        self.global_batch_size, self.per_device_batch_size = (
+            global_batch_size,
+            per_device_batch_size,
+        )
 
-        self.learning_rate, self.weight_decay, self.max_grad_norm = learning_rate, weight_decay, max_grad_norm
+        self.learning_rate, self.weight_decay, self.max_grad_norm = (
+            learning_rate,
+            weight_decay,
+            max_grad_norm,
+        )
         self.lr_scheduler_type, self.warmup_ratio = lr_scheduler_type, warmup_ratio
 
         # Generic Strategy Parameters
@@ -80,10 +90,18 @@ class TrainingStrategy(ABC):
         assert (
             self.global_batch_size % self.per_device_batch_size == 0
         ), "Per-device batch size must evenly divide global batch size!"
-        self.grad_accumulation_steps = self.global_batch_size // self.per_device_batch_size // overwatch.world_size()
+        self.grad_accumulation_steps = (
+            self.global_batch_size
+            // self.per_device_batch_size
+            // overwatch.world_size()
+        )
         if self.enable_mixed_precision_training:
-            assert self.mixed_precision_dtype == torch.bfloat16, "Only BF16 mixed precision training is supported!"
-            assert check_bloat16_supported(), "BFloat16 is not supported on this hardware; unset `mixed_precision`"
+            assert (
+                self.mixed_precision_dtype == torch.bfloat16
+            ), "Only BF16 mixed precision training is supported!"
+            assert (
+                check_bloat16_supported()
+            ), "BFloat16 is not supported on this hardware; unset `mixed_precision`"
 
     @abstractmethod
     def save_checkpoint(
@@ -109,6 +127,7 @@ class TrainingStrategy(ABC):
         stage: str = "finetune",
         batch_construction_strategy: str = "split-modality",
         seed: int = 7,
+        save_interval: int = 2500,
     ) -> None:
         """Run the training loop for the given `dataset` and `collator`; log losses, results to `metrics`"""
         if "finetune" in stage and batch_construction_strategy == "split-modality":
@@ -219,15 +238,26 @@ class TrainingStrategy(ABC):
                         self.optimizer.zero_grad()
 
                         # Push Metrics
-                        metrics.commit(global_step=metrics.global_step + 1, lr=self.lr_scheduler.get_last_lr()[0])
+                        metrics.commit(
+                            global_step=metrics.global_step + 1,
+                            lr=self.lr_scheduler.get_last_lr()[0],
+                        )
                         status = metrics.push()
 
                         # Check for Termination & Save Final Checkpoint (in case `max_steps` is not None)
-                        if self.max_steps is not None and metrics.global_step >= self.max_steps:
-                            self.save_checkpoint(metrics.run_dir, metrics.global_step, epoch, loss.item())
+                        if (
+                            terminate := (
+                                self.max_steps is not None
+                                and metrics.global_step >= self.max_steps
+                            )
+                        ) or ((metrics.global_step % save_interval) == 0):
+                            self.save_checkpoint(
+                                metrics.run_dir, metrics.global_step, epoch, loss.item()
+                            )
                             dist.barrier()
 
-                            return
+                            if terminate:
+                                return
 
                         # Update Progress Bar
                         progress.update()
@@ -235,5 +265,7 @@ class TrainingStrategy(ABC):
 
             # Save checkpoint at end each epoch (if `self.max_steps` is None)
             if self.max_steps is None:
-                self.save_checkpoint(metrics.run_dir, metrics.global_step, epoch, loss.item())
+                self.save_checkpoint(
+                    metrics.run_dir, metrics.global_step, epoch, loss.item()
+                )
                 dist.barrier()
