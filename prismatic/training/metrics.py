@@ -58,10 +58,13 @@ class JSONLinesTracker:
 
     @overwatch.rank_zero_only
     def write(self, _: int, metrics: Dict[str, Union[int, float]]) -> None:
-        with jsonlines.open(
-            self.run_dir / f"{self.run_id}.jsonl", mode="a", sort_keys=True
-        ) as js_tracker:
-            js_tracker.write(metrics)
+        try:
+            with jsonlines.open(
+                self.run_dir / f"{self.run_id}.jsonl", mode="a", sort_keys=True
+            ) as js_tracker:
+                js_tracker.write(metrics)
+        except OSError as e:
+            print(f"Error writing to JSONL file: {e}")
 
     def finalize(self) -> None:
         return
