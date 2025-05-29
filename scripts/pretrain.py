@@ -27,6 +27,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
+os.environ["TORCH_OFFLINE"] = "1"
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["HUGGINGFACE_HUB_CACHE"] = (
+    "/mnt/xr_core_ai_asl_llm/tree/vla/models/huggingface/hub"
+)
+os.environ["HF_HOME"] = "/mnt/xr_core_ai_asl_llm/tree/vla/models/huggingface"
+
 import draccus
 import torch
 import torch.distributed as dist
@@ -45,11 +52,6 @@ from prismatic.util import set_global_seed
 
 # Disable Tokenizers Parallelism to Play Nice w/ PyTorch Multiprocessing DataLoaders
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-os.environ["TORCH_OFFLINE"] = "1"
-os.environ["HF_HUB_OFFLINE"] = "1"
-os.environ["HUGGINGFACE_HUB_CACHE"] = (
-    "/mnt/xr_core_ai_asl_llm/tree/vla/models/huggingface/hub"
-)
 
 # Initialize Overwatch =>> Wraps `logging.Logger`
 overwatch = initialize_overwatch(__name__)
