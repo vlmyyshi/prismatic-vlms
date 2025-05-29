@@ -19,12 +19,17 @@ from typing import Callable, List, Optional, Type
 
 import torch
 import torch.nn as nn
-from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
-from transformers import AutoConfig, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
-from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from prismatic.models.backbones.llm.prompting import PromptBuilder
 from prismatic.overwatch import initialize_overwatch
+from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
+from transformers import (
+    AutoConfig,
+    AutoTokenizer,
+    PreTrainedModel,
+    PreTrainedTokenizerBase,
+)
+from transformers.modeling_outputs import CausalLMOutputWithPast
 
 # Suppress HF Deprecation Warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -114,20 +119,29 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
         # Initialize LLM (downloading from HF Hub if necessary) --> `llm_cls` is the actual {Model}ForCausalLM class!
         #   => Note: We're eschewing use of the AutoModel API so that we can be more explicit about LLM-specific details
         if not self.inference_mode:
-            overwatch.info(f"Loading [bold]{llm_family}[/] LLM from [underline]`{hf_hub_path}`[/]", ctx_level=1)
+            overwatch.info(
+                f"Loading [bold]{llm_family}[/] LLM from [underline]`{hf_hub_path}`[/]",
+                ctx_level=1,
+            )
             self.llm = llm_cls.from_pretrained(
                 hf_hub_path,
                 token=hf_token,
-                use_flash_attention_2=use_flash_attention_2 if not self.inference_mode else False,
+                use_flash_attention_2=(
+                    use_flash_attention_2 if not self.inference_mode else False
+                ),
                 # The following parameters are set to prevent `UserWarnings` from HF; we want greedy decoding!
                 do_sample=False,
                 temperature=1.0,
                 top_p=1.0,
+                local_files_only=True,
             )
 
         # [Contract] `inference_mode` means we're loading from a pretrained checkpoint; no need to load base weights!
         else:
-            overwatch.info(f"Building empty [bold]{llm_family}[/] LLM from [underline]`{hf_hub_path}`[/]", ctx_level=1)
+            overwatch.info(
+                f"Building empty [bold]{llm_family}[/] LLM from [underline]`{hf_hub_path}`[/]",
+                ctx_level=1,
+            )
             llm_config = AutoConfig.from_pretrained(hf_hub_path, token=hf_token)
             self.llm = llm_cls._from_config(llm_config)
 
@@ -144,16 +158,22 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
             self.llm.enable_input_require_grads()
 
         # Load (Fast) Tokenizer
-        overwatch.info(f"Loading [bold]{llm_family}[/] (Fast) Tokenizer via the AutoTokenizer API", ctx_level=1)
+        overwatch.info(
+            f"Loading [bold]{llm_family}[/] (Fast) Tokenizer via the AutoTokenizer API",
+            ctx_level=1,
+        )
         self.tokenizer = AutoTokenizer.from_pretrained(
             hf_hub_path,
             model_max_length=self.llm_max_length,
-            token=hf_token,
+            local_files_only=True,
+            use_fast=True,
             padding_side="right",
         )
 
         # Explicitly verify that Tokenizer padding_side is set to right for training!
-        assert self.tokenizer.padding_side == "right", "Tokenizer `padding_side` is not set to `right`!"
+        assert (
+            self.tokenizer.padding_side == "right"
+        ), "Tokenizer `padding_side` is not set to `right`!"
 
         # Validation =>> Our VLM logic currently operates under the assumption that the tokenization of a new input
         #                starts with a <BOS> token unless `add_special_tokens = False`; for these models, we empirically
@@ -174,8 +194,12 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
             return
 
         # Note =>> this assert should hold for all Llama-derived tokenizers (`LlamaTokenizerFast` ==> includes Mistral!
-        assert (self.tokenizer("Test 123", add_special_tokens=True).input_ids[0] == self.tokenizer.bos_token_id) and (
-            self.tokenizer("Test 123", add_special_tokens=False).input_ids[0] != self.tokenizer.bos_token_id
+        assert (
+            self.tokenizer("Test 123", add_special_tokens=True).input_ids[0]
+            == self.tokenizer.bos_token_id
+        ) and (
+            self.tokenizer("Test 123", add_special_tokens=False).input_ids[0]
+            != self.tokenizer.bos_token_id
         ), (
             f"Default Tokenizer of type `{type(self.tokenizer)}` does not automatically prefix inputs with BOS token!\n"
             "Please read the comment in `base_llm.py` for more information!"
@@ -184,7 +208,8 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
     def get_fsdp_wrapping_policy(self) -> Callable:
         """Return a `transformer_auto_wrap_policy` where we wrap each instance of `self.transformer_layer_cls`"""
         transformer_block_policy = partial(
-            transformer_auto_wrap_policy, transformer_layer_cls={self.transformer_layer_cls}
+            transformer_auto_wrap_policy,
+            transformer_layer_cls={self.transformer_layer_cls},
         )
 
         return transformer_block_policy

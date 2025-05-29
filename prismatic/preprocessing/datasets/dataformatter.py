@@ -417,11 +417,11 @@ class DataFormatter:
             elif self.message_format == "role":
                 if is_user:
                     # message = "User: " + message + " Assistant:"
-                    turn["from"] = "user"
+                    turn["from"] = "human"
                     turn["value"] = message
                 else:
                     # message = "Assistant: " + message
-                    turn["from"] = "assistant"
+                    turn["from"] = "gpt"
                     turn["value"] = message
             else:
                 raise NotImplementedError(self.message_format)
@@ -624,7 +624,6 @@ class DataFormatter:
         if "message_list" in ex:
             # Does not support returning metadata, which is fine since we are not doing inference
             msg = ex["message_list"][rng.randint(0, len(ex["message_list"]))]
-            print(msg)
             return (
                 self._format_example(msg, ex, is_training, for_inference, rng)[0],
                 None,

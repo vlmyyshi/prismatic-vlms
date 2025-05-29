@@ -45,9 +45,24 @@ from prismatic.util import set_global_seed
 
 # Disable Tokenizers Parallelism to Play Nice w/ PyTorch Multiprocessing DataLoaders
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["TORCH_OFFLINE"] = "1"
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["HUGGINGFACE_HUB_CACHE"] = (
+    "/mnt/xr_core_ai_asl_llm/tree/vla/models/huggingface/hub"
+)
 
 # Initialize Overwatch =>> Wraps `logging.Logger`
 overwatch = initialize_overwatch(__name__)
+
+from pathlib import Path
+
+from draccus.parsers.encoding import encode
+
+
+@encode.register(Path)
+def _encode_path(p: Path, declared_type):
+    # emit the string form whenever Draccus sees a Path
+    return str(p)
 
 
 @dataclass
@@ -75,8 +90,6 @@ class PretrainConfig:
     run_root_dir: Path = Path("runs")                               # Path to directory to store logs & checkpoints
     seed: int = 7                                                   # Random seed (for reproducibility)
 
-    # HF Hub Credentials (for any gated models)
-    hf_token: Union[str, Path] = Path("/home/yyshi/.hf_token")                  # Environment variable or Path to HF Token
 
     # Tracking Parameters
     trackers: Tuple[str, ...] = ("jsonl", "tb")                  # Trackers to initialize (if W&B, add config!)
@@ -145,11 +158,6 @@ def pretrain(cfg: PretrainConfig) -> None:
         '"Life is like a prism; what you see depends on how you turn the glass."',
         ctx_level=1,
     )
-    hf_token = (
-        cfg.hf_token.read_text().strip()
-        if isinstance(cfg.hf_token, Path)
-        else os.environ[cfg.hf_token]
-    )
     worker_init_fn = set_global_seed(cfg.seed, get_worker_init_fn=True)
     os.makedirs(run_dir := (cfg.run_root_dir / cfg.run_id), exist_ok=True)
     os.makedirs(cfg.run_root_dir / cfg.run_id / "checkpoints", exist_ok=True)
@@ -178,7 +186,6 @@ def pretrain(cfg: PretrainConfig) -> None:
     llm_backbone, tokenizer = get_llm_backbone_and_tokenizer(
         cfg.model.llm_backbone_id,
         llm_max_length=cfg.model.llm_max_length,
-        hf_token=hf_token,
     )
 
     # Create VLM => wraps `vision_backbone` and `llm`

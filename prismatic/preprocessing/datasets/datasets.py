@@ -264,12 +264,17 @@ class FinetuneHFDataset(Dataset[Dict[str, torch.Tensor]]):
             system_prompt="demo_or_style",
         )
         self.rng = np.random.RandomState(1234)
+        self.mode = "pointing"
 
-        pointing_ds = datasets.load_from_disk(pointing, keep_in_memory=False)["train"]
-        print(pointing_ds)
-        counting_ds = datasets.load_from_disk(counting, keep_in_memory=False)["train"]
-        print(pointing_ds)
-        self.examples = datasets.concatenate_datasets([pointing_ds, counting_ds])
+        self.pointing_ds = datasets.load_from_disk(pointing, keep_in_memory=False)[
+            "train"
+        ]
+        self.pointing_ds_size = len(self.pointing_ds)
+        self.counting_ds = datasets.load_from_disk(counting, keep_in_memory=False)[
+            "train"
+        ]
+        self.counting_ds_size = len(self.counting_ds)
+        # self.examples = datasets.concatenate_datasets([pointing_ds, counting_ds])
 
     # === Unimodal + Multimodal Handling ===
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
@@ -284,7 +289,13 @@ class FinetuneHFDataset(Dataset[Dict[str, torch.Tensor]]):
 
         :return: Dictionary of {"pixel_values": torch.Tensor, "input_ids": torch.Tensor, "labels": torch.Tensor}
         """
-        ex = self.examples[idx]
+        if idx >= self.pointing_ds_size:
+            idx -= self.pointing_ds_size
+            examples = self.counting_ds
+        else:
+            examples = self.pointing_ds
+
+        ex = examples[idx]
         messages = []
         for label, points in zip(ex["label"], ex["points"]):
             messages.append(
@@ -358,16 +369,20 @@ class FinetuneHFDataset(Dataset[Dict[str, torch.Tensor]]):
         )
 
         # === Handle "unimodal" (language-only) vs. "multimodal" ===
-        if "image" in self.examples[idx]:
-            image_path = Path(self.examples[idx]["image"])
+        if "image" in examples[idx]:
+            orig = examples[idx]["image"]
+            if "/home/yyshi/data/molmo" in orig:
+                new_root = "/mnt/xr_core_ai_asl_llm/tree/vlm/data/PixMo"
+                new_path = orig.replace("/home/yyshi/data/molmo", new_root)
+                image_path = Path(new_path)
+            else:
+                image_path = Path(orig)
 
             # Set the <BOS> token's label to IGNORE_INDEX (since we're inserting the image patches right after)
             labels[0] = IGNORE_INDEX
 
             # Process Image --> get "pixel_values" (will either be a torch.Tensor OR a Dict[str,torch.Tensor])
-            pixel_values = self.image_transform(
-                Image.open(self.image_dir / image_path).convert("RGB")
-            )
+            pixel_values = self.image_transform(Image.open(image_path).convert("RGB"))
 
             return dict(pixel_values=pixel_values, input_ids=input_ids, labels=labels)
 
@@ -379,7 +394,13 @@ class FinetuneHFDataset(Dataset[Dict[str, torch.Tensor]]):
         """Get a list of modalities (unimodal / text-only vs. multimodal) and length of conversations per example."""
         rng = np.random.RandomState(1234)
         modality_lengths = []
-        for ex in self.examples:
+        for idx in range(0, self.pointing_ds_size + self.counting_ds_size):
+            if idx >= self.pointing_ds_size:
+                idx -= self.pointing_ds_size
+                examples = self.counting_ds
+            else:
+                examples = self.pointing_ds
+            ex = examples[idx]
             is_multimodal = "image" in ex
             messages = []
             for label, points in zip(ex["label"], ex["points"]):
@@ -403,10 +424,9 @@ class FinetuneHFDataset(Dataset[Dict[str, torch.Tensor]]):
             formatted, meta_data = self.dataformatter(
                 ex=input_to_formatter, is_training=True, for_inference=False, rng=rng
             )
-            print(formatted)
             n_words = sum([len(turn["value"].split()) for turn in formatted])
             modality_lengths.append((is_multimodal, n_words))
         return modality_lengths
 
     def __len__(self) -> int:
-        return len(self.examples)
+        return self.pointing_ds_size + self.counting_ds_size

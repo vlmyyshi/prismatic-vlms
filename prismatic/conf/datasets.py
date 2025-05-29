@@ -123,7 +123,7 @@ class PixMoPoints_Config(DatasetConfig):
         str("points-counting/"),
     )
     dataset_root_dir: str = str(
-        "/mnt/xr_core_ai_asl_llm/tree/vlm/data/PixMo/torch_datasets"
+        "/mnt/xr_core_ai_asl_llm/tree/vlm/data/PixMo/torch_datasets/pixmo_datasets"
     )
 
 
