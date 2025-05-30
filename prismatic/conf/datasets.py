@@ -40,10 +40,10 @@ class LLaVa_V15_Config(DatasetConfig):
         str("download/llava-laion-cc-sbu-558k/"),
     )
     finetune_stage_components: Tuple[str, str] = (
-        str("download/llava-v1.5-instruct/llava_v1_5_mix665k.json"),
-        str("download/llava-v1.5-instruct/"),
+        str("llava-v1.5-instruct/llava_v1_5_mix665k.json"),
+        str("llava-v1.5-instruct/"),
     )
-    dataset_root_dir: str = str("data")
+    dataset_root_dir: str = str("/mnt/xr_core_ai_asl_llm/tree/vlm/data")
 
 
 # [Multimodal-Only] LLava-v15 WITHOUT the Language-Only ShareGPT Data (No Co-Training)
