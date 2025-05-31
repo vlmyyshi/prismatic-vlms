@@ -104,10 +104,10 @@ class LLaVa_LVIS4V_LRV_Config(DatasetConfig):
         str("download/llava-laion-cc-sbu-558k/"),
     )
     finetune_stage_components: Tuple[str, str] = (
-        str("download/llava-v1.5-instruct/llava_v1_5_lvis4v_lrv_mix1231k.json"),
-        str("download/llava-v1.5-instruct/"),
+        str("llava-v1.5-instruct/llava_v1_5_lvis4v_lrv_mix1231k.json"),
+        str("llava-v1.5-instruct/"),
     )
-    dataset_root_dir: str = str("/mnt/fsx/skaramcheti/datasets/prismatic-vlms")
+    dataset_root_dir: str = str("/mnt/xr_core_ai_asl_llm/tree/vlm/data")
 
 
 @dataclass

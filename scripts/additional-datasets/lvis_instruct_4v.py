@@ -22,13 +22,13 @@ import os
 import random
 from pathlib import Path
 
-from tqdm import tqdm
-
 from prismatic.preprocessing.download import download_with_progress
+
+from tqdm import tqdm
 
 # === Constants ===
 DATA_URL = "https://huggingface.co/datasets/X2FD/LVIS-Instruct4V/resolve/main/lvis_instruct4v_220k.json"
-DOWNLOAD_DIR = Path("data/download/llava-v1.5-instruct")
+DOWNLOAD_DIR = Path("/mnt/xr_core_ai_asl_llm/tree/vlm/data/llava-v1.5-instruct")
 RAW_JSON_FILE = DOWNLOAD_DIR / "lvis_instruct4v_220k.json"
 
 # JSON Files for "merged" variant of the dataset (with `llava_v1_5_mix665k.json`)
