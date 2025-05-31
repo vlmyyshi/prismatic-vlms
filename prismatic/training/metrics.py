@@ -91,11 +91,17 @@ class WeightsBiasesTracker:
 
     @overwatch.rank_zero_only
     def write_hyperparameters(self) -> None:
-        self.tb_writer.add_hparams(self.hparams, metric_dict={})
+        try:
+            self.tb_writer.add_hparams(self.hparams, metric_dict={})
+        except OSError as e:
+            print(f"Error writing to JSONL file: {e}")
 
     @overwatch.rank_zero_only
     def write(self, global_step: int, metrics: Dict[str, Union[int, float]]) -> None:
-        self.tb_writer.add_scalars(self.group, metrics, global_step)
+        try:
+            self.tb_writer.add_scalars(self.group, metrics, global_step)
+        except OSError as e:
+            print(f"Error writing to JSONL file: {e}")
 
     @overwatch.rank_zero_only
     def finalize(self) -> None:
