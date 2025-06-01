@@ -301,6 +301,7 @@ def build_lrv_point_instruct() -> None:
             Image.open(image_path).convert("RGB")
         except Exception:
             print("Failed to load image", image_path)
+            continue
         messages_pointing = []
         messages_point_count = []
 
