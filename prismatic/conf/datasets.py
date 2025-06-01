@@ -111,6 +111,81 @@ class LLaVa_LVIS4V_LRV_Config(DatasetConfig):
 
 
 @dataclass
+class LLaVa_LVIS4V_LRV_POINT_Config(DatasetConfig):
+    dataset_id: str = "llava-lvis4v-lrv-point"
+
+    align_stage_components: Tuple[str, str] = (
+        str("download/llava-laion-cc-sbu-558k/chat.json"),
+        str("download/llava-laion-cc-sbu-558k/"),
+    )
+    finetune_stage_components: Tuple[str, str] = (
+        str("llava-v1.5-instruct/llava_v1_5_lvis4v_lrv_point.json"),
+        str("llava-v1.5-instruct/"),
+    )
+    dataset_root_dir: str = str("/mnt/xr_core_ai_asl_llm/tree/vlm/data")
+
+
+@dataclass
+class LLaVa_LVIS4V_LRV_POINT_20_Config(DatasetConfig):
+    dataset_id: str = "llava-lvis4v-lrv-point-20"
+
+    align_stage_components: Tuple[str, str] = (
+        str("download/llava-laion-cc-sbu-558k/chat.json"),
+        str("download/llava-laion-cc-sbu-558k/"),
+    )
+    finetune_stage_components: Tuple[str, str] = (
+        str("llava-v1.5-instruct/llava_v1_5_lvis4v_lrv_point_20.json"),
+        str("llava-v1.5-instruct/"),
+    )
+    dataset_root_dir: str = str("/mnt/xr_core_ai_asl_llm/tree/vlm/data")
+
+
+@dataclass
+class LLaVa_LVIS4V_LRV_POINT_40_Config(DatasetConfig):
+    dataset_id: str = "llava-lvis4v-lrv-point-40"
+
+    align_stage_components: Tuple[str, str] = (
+        str("download/llava-laion-cc-sbu-558k/chat.json"),
+        str("download/llava-laion-cc-sbu-558k/"),
+    )
+    finetune_stage_components: Tuple[str, str] = (
+        str("llava-v1.5-instruct/llava_v1_5_lvis4v_lrv_point_40.json"),
+        str("llava-v1.5-instruct/"),
+    )
+    dataset_root_dir: str = str("/mnt/xr_core_ai_asl_llm/tree/vlm/data")
+
+
+@dataclass
+class LLaVa_LVIS4V_LRV_POINT_60_Config(DatasetConfig):
+    dataset_id: str = "llava-lvis4v-lrv-point-60"
+
+    align_stage_components: Tuple[str, str] = (
+        str("download/llava-laion-cc-sbu-558k/chat.json"),
+        str("download/llava-laion-cc-sbu-558k/"),
+    )
+    finetune_stage_components: Tuple[str, str] = (
+        str("llava-v1.5-instruct/llava_v1_5_lvis4v_lrv_point_60.json"),
+        str("llava-v1.5-instruct/"),
+    )
+    dataset_root_dir: str = str("/mnt/xr_core_ai_asl_llm/tree/vlm/data")
+
+
+@dataclass
+class LLaVa_LVIS4V_LRV_POINT_80_Config(DatasetConfig):
+    dataset_id: str = "llava-lvis4v-lrv-point-60"
+
+    align_stage_components: Tuple[str, str] = (
+        str("download/llava-laion-cc-sbu-558k/chat.json"),
+        str("download/llava-laion-cc-sbu-558k/"),
+    )
+    finetune_stage_components: Tuple[str, str] = (
+        str("llava-v1.5-instruct/llava_v1_5_lvis4v_lrv_point_80.json"),
+        str("llava-v1.5-instruct/"),
+    )
+    dataset_root_dir: str = str("/mnt/xr_core_ai_asl_llm/tree/vlm/data")
+
+
+@dataclass
 class PixMoPoints_Config(DatasetConfig):
     dataset_id: str = "pixmo-points"
 
@@ -141,6 +216,16 @@ class DatasetRegistry(Enum):
     LLAVA_LVIS4V_LRV = LLaVa_LVIS4V_LRV_Config
 
     PIXMO_POINTS = PixMoPoints_Config
+
+    LLAVA_LVIS4V_LRV_POINT = LLaVa_LVIS4V_LRV_POINT_Config
+
+    LLAVA_LVIS4V_LRV_POINT_20 = LLaVa_LVIS4V_LRV_POINT_20_Config
+
+    LLAVA_LVIS4V_LRV_POINT_40 = LLaVa_LVIS4V_LRV_POINT_40_Config
+
+    LLAVA_LVIS4V_LRV_POINT_60 = LLaVa_LVIS4V_LRV_POINT_60_Config
+
+    LLAVA_LVIS4V_LRV_POINT_80 = LLaVa_LVIS4V_LRV_POINT_80_Config
 
     @property
     def dataset_id(self) -> str:
