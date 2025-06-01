@@ -172,7 +172,7 @@ class LLaVa_LVIS4V_LRV_POINT_60_Config(DatasetConfig):
 
 @dataclass
 class LLaVa_LVIS4V_LRV_POINT_80_Config(DatasetConfig):
-    dataset_id: str = "llava-lvis4v-lrv-point-60"
+    dataset_id: str = "llava-lvis4v-lrv-point-80"
 
     align_stage_components: Tuple[str, str] = (
         str("download/llava-laion-cc-sbu-558k/chat.json"),
