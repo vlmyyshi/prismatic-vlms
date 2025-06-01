@@ -150,6 +150,22 @@ GENERAL_PROMPTS_V1 = {
     ],
 }
 
+wrong_image_ids = [
+    693,
+    5104,
+    9074,
+    9594,
+    19739,
+    51195,
+    102767,
+    110084,
+    116603,
+    150348,
+    155884,
+    166039,
+    185888,
+]
+
 
 def apply_keywords(prompt, example, keywords):
     for keyword in keywords:
@@ -341,8 +357,8 @@ def build_lrv_point_instruct() -> None:
 
         chat_json.append(
             {
-                "id": image_path.stem,
-                "image": image_path,
+                "id": str(image_path.stem),
+                "image": f"pixmo_images/{image_path.stem}",
                 "conversations": conversations,
             }
         )
