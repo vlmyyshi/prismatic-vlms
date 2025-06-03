@@ -41,6 +41,18 @@ BASE_DIR = Path("/mnt/xr_core_ai_asl_llm/tree/vlm/data/llava-v1.5-instruct")
 BASE_POINTS_FILE = BASE_DIR / "llava_v1_5_point.json"
 BASE_LVIS_LRV_JSON_FILE = BASE_DIR / "llava_v1_5_lvis4v_lrv_mix1231k.json"
 MERGED_BASE_LVIS_LRV_POINT_JSON_FILE = BASE_DIR / "llava_v1_5_lvis4v_lrv_point.json"
+MERGED_BASE_LVIS_LRV_POINT_JSON_20_FILE = (
+    BASE_DIR / "llava_v1_5_lvis4v_lrv_point_20.json"
+)
+MERGED_BASE_LVIS_LRV_POINT_JSON_40_FILE = (
+    BASE_DIR / "llava_v1_5_lvis4v_lrv_point_40.json"
+)
+MERGED_BASE_LVIS_LRV_POINT_JSON_60_FILE = (
+    BASE_DIR / "llava_v1_5_lvis4v_lrv_point_60.json"
+)
+MERGED_BASE_LVIS_LRV_POINT_JSON_80_FILE = (
+    BASE_DIR / "llava_v1_5_lvis4v_lrv_point_80.json"
+)
 TURN_NUM = 2
 
 GENERAL_PROMPTS_V1 = {
@@ -272,10 +284,10 @@ def build_lrv_point_instruct() -> None:
     rng = np.random.RandomState(1234)
 
     ds_pointing = load_from_disk(
-        "/mnt/xr_core_ai_asl_llm/tree/vlm/data/PixMo/torch_datasets/pixmo_datasets/points-pointing"
+        "/home/yyshi/data/molmo/torch_datasets/pixmo_datasets/points-pointing"
     )
     ds_count = load_from_disk(
-        "/mnt/xr_core_ai_asl_llm/tree/vlm/data/PixMo/torch_datasets/pixmo_datasets/points-counting"
+        "/home/yyshi/data/molmo/torch_datasets/pixmo_datasets/points-counting"
     )
     total_num = (
         len(ds_pointing["train"])
@@ -306,12 +318,13 @@ def build_lrv_point_instruct() -> None:
             ]
 
         orig = example["image"]
-        if "/home/yyshi/data/molmo" in orig:
-            new_root = "/mnt/xr_core_ai_asl_llm/tree/vlm/data/PixMo"
-            new_path = orig.replace("/home/yyshi/data/molmo", new_root)
-            image_path = Path(new_path)
-        else:
-            image_path = Path(orig)
+        image_path = Path(orig)
+        # if "/home/yyshi/data/molmo" in orig:
+        #     new_root = "/mnt/xr_core_ai_asl_llm/tree/vlm/data/PixMo"
+        #     new_path = orig.replace("/home/yyshi/data/molmo", new_root)
+        #     image_path = Path(new_path)
+        # else:
+        #     image_path = Path(orig)
         assert image_path.exists(), f"Missing Image `{image_path}`"
         try:
             Image.open(image_path).convert("RGB")
@@ -358,7 +371,7 @@ def build_lrv_point_instruct() -> None:
         chat_json.append(
             {
                 "id": str(image_path.stem),
-                "image": f"pixmo_images/{image_path.stem}",
+                "image": f"../PixMo/torch_datasets/pixmo_images/{image_path.stem}",
                 "conversations": conversations,
             }
         )
@@ -378,10 +391,27 @@ def build_lrv_point_instruct() -> None:
     random.shuffle(llava_lrv_point_data)
     random.shuffle(llava_lrv_point_data)
     random.shuffle(llava_lrv_point_data)
+    total_num = len(llava_lrv_point_data)
     print(len(llava_lrv_point_data))
 
     with open(MERGED_BASE_LVIS_LRV_POINT_JSON_FILE, "w") as f:
         json.dump(llava_lrv_point_data, f, indent=2)
+
+    data_20 = random.sample(llava_lrv_point_data, int(total_num * 0.2))
+    with open(MERGED_BASE_LVIS_LRV_POINT_JSON_20_FILE, "w") as f:
+        json.dump(data_20, f, indent=2)
+
+    data_40 = random.sample(llava_lrv_point_data, int(total_num * 0.4))
+    with open(MERGED_BASE_LVIS_LRV_POINT_JSON_40_FILE, "w") as f:
+        json.dump(data_40, f, indent=2)
+
+    data_60 = random.sample(llava_lrv_point_data, int(total_num * 0.6))
+    with open(MERGED_BASE_LVIS_LRV_POINT_JSON_60_FILE, "w") as f:
+        json.dump(data_60, f, indent=2)
+
+    data_80 = random.sample(llava_lrv_point_data, int(total_num * 0.8))
+    with open(MERGED_BASE_LVIS_LRV_POINT_JSON_80_FILE, "w") as f:
+        json.dump(data_80, f, indent=2)
 
 
 if __name__ == "__main__":
