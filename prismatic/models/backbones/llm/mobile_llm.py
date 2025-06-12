@@ -45,6 +45,7 @@ class MBLLMBackbone(HFCausalLLMBackbone):
             hf_token=hf_token,
             inference_mode=inference_mode,
             use_flash_attention_2=use_flash_attention_2,
+            use_mbllm=True,
             **MBLLM_MODELS[llm_backbone_id],
         )
 

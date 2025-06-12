@@ -131,18 +131,19 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
                     hf_hub_path,
                     use_fast=False,
                 )
-            self.llm = llm_cls.from_pretrained(
-                hf_hub_path,
-                token=hf_token,
-                use_flash_attention_2=(
-                    use_flash_attention_2 if not self.inference_mode else False
-                ),
-                # The following parameters are set to prevent `UserWarnings` from HF; we want greedy decoding!
-                do_sample=False,
-                temperature=1.0,
-                top_p=1.0,
-                local_files_only=True,
-            )
+            else:
+                self.llm = llm_cls.from_pretrained(
+                    hf_hub_path,
+                    token=hf_token,
+                    use_flash_attention_2=(
+                        use_flash_attention_2 if not self.inference_mode else False
+                    ),
+                    # The following parameters are set to prevent `UserWarnings` from HF; we want greedy decoding!
+                    do_sample=False,
+                    temperature=1.0,
+                    top_p=1.0,
+                    local_files_only=True,
+                )
 
         # [Contract] `inference_mode` means we're loading from a pretrained checkpoint; no need to load base weights!
         else:
@@ -170,13 +171,21 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
             f"Loading [bold]{llm_family}[/] (Fast) Tokenizer via the AutoTokenizer API",
             ctx_level=1,
         )
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            hf_hub_path,
-            model_max_length=self.llm_max_length,
-            local_files_only=True,
-            use_fast=True,
-            padding_side="right",
-        )
+        if use_mbllm:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                hf_hub_path,
+                model_max_length=self.llm_max_length,
+                local_files_only=True,
+                use_fast=False,
+            )
+        else:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                hf_hub_path,
+                model_max_length=self.llm_max_length,
+                local_files_only=True,
+                use_fast=True,
+                padding_side="right",
+            )
 
         # Explicitly verify that Tokenizer padding_side is set to right for training!
         assert (

@@ -489,6 +489,17 @@ class Prism_7B_DINOSigLIP_224px(Exp_7B_One_Stage):
     finetune_epochs: int = 2
 
 
+#   =>> Note :: Run with `--dataset.type "llava-lvis4v-lrv"`
+@dataclass
+class Prism_1B_DINOSigLIP_MBLLM_224px(Exp_7B_One_Stage):
+    model_id: str = "prism-dinosiglip-mbllm-224px+1b"
+    vision_backbone_id: str = "dinosiglip-vit-so-224px"
+    image_resize_strategy: str = "resize-naive"
+    llm_backbone_id: str = "mbllm-1b-pure"
+    arch_specifier: str = "no-align+fused-gelu-mlp"
+    finetune_epochs: int = 2
+
+
 # === Define a Model Registry Enum for Reference & Validation ===
 @unique
 class ModelRegistry(Enum):
@@ -565,6 +576,7 @@ class ModelRegistry(Enum):
     # === Inference Optimized :: 224px Prism Models ===
     PRISM_DINOSIGLIP_224PX_CONTROLLED_7B = Prism_7B_DINOSigLIP_224px_Controlled
     PRISM_DINOSIGLIP_224PX_7B = Prism_7B_DINOSigLIP_224px
+    PRISM_DINOSIGLIP_MBLLM_224PX_1B = Prism_1B_DINOSigLIP_MBLLM_224px
 
     @property
     def model_id(self) -> str:
