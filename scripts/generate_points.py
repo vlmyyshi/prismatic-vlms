@@ -11,6 +11,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Union
+
 os.environ["TORCH_OFFLINE"] = "1"
 os.environ["HF_HUB_OFFLINE"] = "1"
 os.environ["HUGGINGFACE_HUB_CACHE"] = (
@@ -18,8 +19,9 @@ os.environ["HUGGINGFACE_HUB_CACHE"] = (
 )
 os.environ["HF_HOME"] = "/mnt/xr_core_ai_asl_llm/tree/vla/models/huggingface"
 
-import draccus
 import re
+
+import draccus
 import requests
 import torch
 from PIL import Image, ImageDraw
@@ -42,12 +44,13 @@ class GenerateConfig:
     output_dir: str = "/home/yyshi/tmp/"
 
     # Default Generation Parameters =>> subscribes to HuggingFace's GenerateMixIn API
-    do_sample: bool = False
-    temperature: float = 1.0
+    do_sample: bool = True
+    temperature: float = 0.4
     max_new_tokens: int = 512
     min_length: int = 1
 
     # fmt: on
+
 
 def highlight_points_on_image(
     img: Image.Image,
@@ -70,18 +73,21 @@ def highlight_points_on_image(
     draw = ImageDraw.Draw(img)
 
     # Each point in `points` is (x, y). Draw a filled circle at each location:
-    for (x, y) in points.tolist():
-        x0 = x - radius
-        y0 = y - radius
-        x1 = x + radius
-        y1 = y + radius
+    for x, y in points.tolist():
+        x0 = (float(x) / 100) * 224 - radius
+        y0 = float(y) * 224 / 100 - radius
+        x1 = (float(x) / 100) * 224 + radius
+        y1 = float(y) * 224 / 100 + radius
         draw.ellipse([(x0, y0), (x1, y1)], fill=color)
 
     img.save(output_path)
 
+
 @draccus.wrap()
 def generate(cfg: GenerateConfig) -> None:
-    overwatch.info(f"Initializing Generation Playground with Prismatic Model `{cfg.model_path}`")
+    overwatch.info(
+        f"Initializing Generation Playground with Prismatic Model `{cfg.model_path}`"
+    )
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     # Load the pretrained VLM --> uses default `load()` function
@@ -98,7 +104,10 @@ def generate(cfg: GenerateConfig) -> None:
         img = Image.open(image_path).convert("RGB")
         upsampled = img.resize((224, 224), resample=Image.BILINEAR)
         prompt_builder = vlm.get_prompt_builder()
-        prompt_builder.add_turn(role="human", message=f"could you give the points for the {obj} in the image")
+        prompt_builder.add_turn(
+            role="human",
+            message=f"could you give the points for the {obj} in the image",
+        )
         prompt_text = prompt_builder.get_prompt()
         generated_text = vlm.generate(
             upsampled,
@@ -112,10 +121,13 @@ def generate(cfg: GenerateConfig) -> None:
         m = re.search(r'x="([^"]+)"\s+y="([^"]+)"', generated_text)
         if m:
             x_val, y_val = m.group(1), m.group(2)
-            highlight_points_on_image(upsampled, torch.tensor([[float(x_val), float(y_val)]]), output_path=os.path.join(cfg.output_dir, image_file))
+            highlight_points_on_image(
+                upsampled,
+                torch.tensor([[float(x_val), float(y_val)]]),
+                output_path=os.path.join(cfg.output_dir, image_file),
+            )
         else:
             print("No match")
-
 
 
 if __name__ == "__main__":
