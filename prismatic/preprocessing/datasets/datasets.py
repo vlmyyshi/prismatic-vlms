@@ -222,9 +222,8 @@ class FinetuneDataset(Dataset[Dict[str, torch.Tensor]]):
             labels[0] = IGNORE_INDEX
 
             # Process Image --> get "pixel_values" (will either be a torch.Tensor OR a Dict[str,torch.Tensor])
-            pixel_values = self.image_transform(
-                Image.open(self.image_dir / image_path).convert("RGB")
-            )
+            full_path = (self.image_dir / image_path).resolve()
+            pixel_values = self.image_transform(Image.open(full_path).convert("RGB"))
 
             return dict(pixel_values=pixel_values, input_ids=input_ids, labels=labels)
 
