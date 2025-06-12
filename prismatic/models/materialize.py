@@ -7,9 +7,13 @@ individual functions for clear control flow.
 
 from typing import Optional, Tuple
 
-from transformers import PreTrainedTokenizerBase
-
-from prismatic.models.backbones.llm import LLaMa2LLMBackbone, LLMBackbone, MistralLLMBackbone, PhiLLMBackbone
+from prismatic.models.backbones.llm import (
+    LLaMa2LLMBackbone,
+    LLMBackbone,
+    MBLLMBackbone,
+    MistralLLMBackbone,
+    PhiLLMBackbone,
+)
 from prismatic.models.backbones.vision import (
     CLIPViTBackbone,
     DinoCLIPViTBackbone,
@@ -21,6 +25,7 @@ from prismatic.models.backbones.vision import (
     VisionBackbone,
 )
 from prismatic.models.vlms import PrismaticVLM
+from transformers import PreTrainedTokenizerBase
 
 # === Registries =>> Maps ID --> {cls(), kwargs} :: Different Registries for Vision Backbones, LLM Backbones, VLMs ===
 # fmt: off
@@ -52,6 +57,8 @@ VISION_BACKBONES = {
 
 # === Language Model Registry ===
 LLM_BACKBONES = {
+    # === MobileLLM Pure (Non-Chat) Backbones ===
+    "mbllm-1b-pure": {"cls": MBLLMBackbone, "kwargs": {}},
     # === LLaMa-2 Pure (Non-Chat) Backbones ===
     "llama2-7b-pure": {"cls": LLaMa2LLMBackbone, "kwargs": {}},
     "llama2-13b-pure": {"cls": LLaMa2LLMBackbone, "kwargs": {}},

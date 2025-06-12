@@ -20,6 +20,8 @@ from typing import Callable, List, Optional, Type
 import torch
 import torch.nn as nn
 
+from prismatic.models.backbones import llm
+
 from prismatic.models.backbones.llm.prompting import PromptBuilder
 from prismatic.overwatch import initialize_overwatch
 from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
@@ -110,6 +112,7 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
         hf_token: Optional[str] = None,
         inference_mode: bool = False,
         use_flash_attention_2: bool = False,
+        use_mbllm: bool = False,
     ) -> None:
         super().__init__(llm_backbone_id)
         self.llm_family = llm_family
@@ -123,6 +126,11 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
                 f"Loading [bold]{llm_family}[/] LLM from [underline]`{hf_hub_path}`[/]",
                 ctx_level=1,
             )
+            if use_mbllm:
+                self.llm = llm_cls.from_pretrained(
+                    hf_hub_path,
+                    use_fast=False,
+                )
             self.llm = llm_cls.from_pretrained(
                 hf_hub_path,
                 token=hf_token,
