@@ -23,8 +23,8 @@ from transformers.models.llama.modeling_llama import LlamaDecoderLayer
 # fmt: off
 MBLLM_MODELS = {
     # === Pure Meta LLaMa-2 (non-instruct/chat-tuned) Models ===
-    "MobileLLM-1B": {
-        "llm_family": "mbllm-1b", "llm_cls": AutoModelForCausalLM, "hf_hub_path": "facebook/MobileLLM-1B"
+    "mbllm-1b-pure": {
+        "llm_family": "mbllm-1b", "llm_cls": AutoModelForCausalLM, "hf_hub_path": "/mnt/xr_core_ai_asl_llm/tree/experiments_zechunliu/1-bit/99_final_best_models/paretoq_model_oss_hf/mobilellm/BF16/1B"
     },
 }
 # fmt: on
@@ -50,13 +50,7 @@ class MBLLMBackbone(HFCausalLLMBackbone):
         )
 
         # [Special Case] LLaMa-2 PAD Token Handling --> for clarity, we add an extra token (and resize)
-        self.tokenizer.add_special_tokens(
-            {
-                "eos_token": "</s>",
-                "bos_token": "<s>",
-                "unk_token": "<unk>",
-            }
-        )
+        self.tokenizer.add_special_tokens({"pad_token": "<PAD>"})
         self.llm.config.pad_token_id = self.tokenizer.pad_token_id
         self.llm.resize_token_embeddings(len(self.tokenizer), pad_to_multiple_of=64)
 

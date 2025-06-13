@@ -129,7 +129,7 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
             if use_mbllm:
                 self.llm = llm_cls.from_pretrained(
                     hf_hub_path,
-                    use_fast=False,
+                    trust_remote_code=True,
                 )
             else:
                 self.llm = llm_cls.from_pretrained(
@@ -171,21 +171,13 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
             f"Loading [bold]{llm_family}[/] (Fast) Tokenizer via the AutoTokenizer API",
             ctx_level=1,
         )
-        if use_mbllm:
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                hf_hub_path,
-                model_max_length=self.llm_max_length,
-                local_files_only=True,
-                use_fast=False,
-            )
-        else:
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                hf_hub_path,
-                model_max_length=self.llm_max_length,
-                local_files_only=True,
-                use_fast=True,
-                padding_side="right",
-            )
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            hf_hub_path,
+            model_max_length=self.llm_max_length,
+            local_files_only=True,
+            use_fast=True,
+            padding_side="right",
+        )
 
         # Explicitly verify that Tokenizer padding_side is set to right for training!
         assert (
